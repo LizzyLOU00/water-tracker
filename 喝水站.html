@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💧 咕嘟咕嘟喝水站</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            font-family: 'Noto Sans SC', 'Nunito', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 50%, #80deea 100%);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 150, 200, 0.15);
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.4;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            50% {
+                transform: translate(20px, -30px) scale(1.1);
+            }
+        }
+
+        .btn-bounce:active {
+            transform: scale(0.95);
+        }
+
+        .progress-ring {
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .drink-item {
+            transition: all 0.3s ease;
+        }
+
+        .drink-item:hover {
+            transform: translateX(4px);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 150, 200, 0.3);
+            border-radius: 3px;
+        }
+
+        .timeline-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            position: absolute;
+            left: -6px;
+            top: 6px;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px var(--dot-color);
+        }
+
+        .reminder-badge {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 8px rgba(34, 211, 238, 0);
+            }
+        }
+
+        .confetti {
+            position: fixed;
+            pointer-events: none;
+            z-index: 100;
+            animation: confetti-fall 3s ease-out forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-10vh) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(110vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        .streak-flame {
+            animation: flame 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes flame {
+            0% {
+                transform: scale(1) rotate(-2deg);
+            }
+
+            100% {
+                transform: scale(1.1) rotate(2deg);
+            }
+        }
+
+        .achievement-unlock {
+            animation: achievement-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes achievement-pop {
+            0% {
+                transform: scale(0) rotate(-10deg);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body class="relative overflow-x-hidden">
+    <div class="blob bg-cyan-300 w-64 h-64 top-0 left-0" style="animation-delay:0s"></div>
+    <div class="blob bg-blue-300 w-48 h-48 top-40 right-0" style="animation-delay:2s"></div>
+    <div class="blob bg-teal-300 w-56 h-56 bottom-20 left-20" style="animation-delay:4s"></div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-4 py-6">
+        <header class="text-center mb-6">
+            <h1 class="text-4xl md:text-5xl font-black text-cyan-700 mb-2 drop-shadow-sm">💧 咕嘟咕嘟喝水站</h1>
+            <p class="text-cyan-600/80 text-sm md:text-base font-medium">和小伙伴一起，每天咕嘟咕嘟喝够水～</p>
+        </header>
+
+        <div id="streak-banner"
+            class="hidden mb-4 glass-card rounded-2xl p-3 flex items-center justify-center gap-2 bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200">
+            <span class="streak-flame text-2xl">🔥</span>
+            <span class="font-bold text-amber-700">连续打卡 <span id="streak-days" class="text-xl">3</span> 天！</span>
+            <span class="streak-flame text-2xl">🔥</span>
+        </div>
+
+        <div id="reminder-banner"
+            class="hidden mb-4 glass-card rounded-2xl p-4 bg-gradient-to-r from-cyan-50 to-blue-50 border-cyan-200">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="reminder-badge w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white text-xl">
+                        ⏰</div>
+                    <div>
+                        <div class="font-bold text-cyan-800 text-sm">该喝水啦！</div>
+                        <div class="text-xs text-cyan-600">距离下一次提醒还有 <span id="reminder-countdown"
+                                class="font-bold">45</span> 分钟</div>
+                    </div>
+                </div>
+                <button onclick="switchTab('add')"
+                    class="btn-bounce bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all">去记录</button>
+            </div>
+        </div>
+
+        <div id="achievement-toast"
+            class="hidden fixed top-4 left-1/2 -translate-x-1/2 z-50 glass-card rounded-2xl p-4 bg-gradient-to-r from-amber-50 to-yellow-50 border-amber-200 shadow-xl achievement-unlock">
+            <div class="flex items-center gap-3">
+                <span id="achievement-emoji" class="text-3xl">🏆</span>
+                <div>
+                    <div class="font-bold text-amber-700 text-sm">解锁成就！</div>
+                    <div id="achievement-text" class="text-xs text-amber-600">今日目标达成</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-center mb-6">
+            <div class="glass-card rounded-2xl p-1.5 flex gap-1 overflow-x-auto">
+                <button onclick="switchTab('dashboard')" id="tab-dashboard"
+                    class="px-4 py-2.5 rounded-xl text-sm font-bold transition-all bg-cyan-500 text-white shadow-lg whitespace-nowrap">📊
+                    今日</button>
+                <button onclick="switchTab('history')" id="tab-history"
+                    class="px-4 py-2.5 rounded-xl text-sm font-bold transition-all text-cyan-600 hover:bg-cyan-50 whitespace-nowrap">📈
+                    历史</button>
+                <button onclick="switchTab('add')" id="tab-add"
+                    class="px-4 py-2.5 rounded-xl text-sm font-bold transition-all text-cyan-600 hover:bg-cyan-50 whitespace-nowrap">➕
+                    记录</button>
+                <button onclick="switchTab('settings')" id="tab-settings"
+                    class="px-4 py-2.5 rounded-xl text-sm font-bold transition-all text-cyan-600 hover:bg-cyan-50 whitespace-nowrap">⚙️
+                    设置</button>
+            </div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div id="view-dashboard" class="fade-in">
+            <div class="glass-card rounded-3xl p-6 mb-6">
+                <div class="flex flex-col md:flex-row items-center gap-6">
+                    <div class="relative w-40 h-40 flex-shrink-0">
+                        <svg class="w-full h-full -rotate-90" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="54" fill="none" stroke="#e0f2f1" stroke-width="10" />
+                            <circle id="my-progress-ring" cx="60" cy="60" r="54" fill="none" stroke="url(#grad1)"
+                                stroke-width="10" stroke-linecap="round" stroke-dasharray="339.292"
+                                stroke-dashoffset="339.292" class="progress-ring" />
+                            <defs>
+                                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#22d3ee" />
+                                    <stop offset="100%" style="stop-color:#0ea5e9" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span id="my-percent" class="text-3xl font-black text-cyan-700">0%</span>
+                            <span id="my-amount" class="text-xs text-cyan-500 font-semibold mt-1">0 / 2000 ml</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 w-full">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div
+                                class="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-xl font-bold shadow-lg">
+                                我</div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-800" id="my-name-display">我</h2>
+                                <p class="text-sm text-gray-500">今日喝水进度</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="bg-white/60 rounded-2xl p-3 text-center">
+                                <div class="text-2xl mb-1">🥤</div>
+                                <div id="my-cups" class="text-lg font-bold text-gray-800">0</div>
+                                <div class="text-xs text-gray-500">杯数</div>
+                            </div>
+                            <div class="bg-white/60 rounded-2xl p-3 text-center">
+                                <div class="text-2xl mb-1">💧</div>
+                                <div id="my-total-ml" class="text-lg font-bold text-cyan-600">0</div>
+                                <div class="text-xs text-gray-500">毫升</div>
+                            </div>
+                            <div class="bg-white/60 rounded-2xl p-3 text-center">
+                                <div class="text-2xl mb-1">🏆</div>
+                                <div id="my-rank" class="text-lg font-bold text-amber-500">-</div>
+                                <div class="text-xs text-gray-500">排名</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-5 pt-4 border-t border-cyan-100">
+                    <h3 class="text-sm font-bold text-gray-600 mb-3">🕐 今日喝水时间线</h3>
+                    <div id="my-timeline"
+                        class="relative pl-6 border-l-2 border-cyan-200 space-y-3 max-h-56 overflow-y-auto pr-1"></div>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-3xl p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">📅 今日喝水计划</h2>
+                    <span class="text-xs text-gray-400 bg-white/50 px-3 py-1 rounded-full">工作时间 9:00-18:00</span>
+                </div>
+                <div id="work-schedule" class="space-y-2"></div>
+            </div>
+
+            <div class="glass-card rounded-3xl p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">👥 小伙伴们的进度</h2>
+                <div id="friends-list" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- HISTORY -->
+        <div id="view-history" class="hidden fade-in">
+            <div class="glass-card rounded-3xl p-6 mb-6">
+                <h2 class="text-lg font-bold text-gray-800 mb-4">📊 近7天喝水量</h2>
+                <div class="h-64"><canvas id="weekly-chart"></canvas></div>
+            </div>
+            <div class="glass-card rounded-3xl p-6 mb-6">
+                <h2 class="text-lg font-bold text-gray-800 mb-4">📈 近30天趋势</h2>
+                <div class="h-48"><canvas id="monthly-chart"></canvas></div>
+            </div>
+            <div class="glass-card rounded-3xl p-6 mb-6">
+                <h2 class="text-lg font-bold text-gray-800 mb-4">🥤 饮品偏好分析</h2>
+                <div class="flex flex-col md:flex-row items-center gap-6">
+                    <div class="w-40 h-40 flex-shrink-0"><canvas id="type-chart"></canvas></div>
+                    <div id="type-stats" class="flex-1 space-y-2 w-full"></div>
+                </div>
+            </div>
+            <div class="glass-card rounded-3xl p-6">
+                <h2 class="text-lg font-bold text-gray-800 mb-4">🏅 我的成就</h2>
+                <div id="achievements-list" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+            </div>
+        </div>
+
+        <!-- ADD -->
+        <div id="view-add" class="hidden fade-in">
+            <div class="glass-card rounded-3xl p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-6 text-center">🥤 记录一杯水</h2>
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-600 mb-2">选择用户</label>
+                    <div class="flex gap-2 flex-wrap" id="user-selector"></div>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-600 mb-2">饮品类型</label>
+                    <div class="grid grid-cols-4 gap-3">
+                        <button onclick="selectType('water')"
+                            class="type-btn active ring-2 ring-cyan-400 bg-cyan-50 rounded-2xl p-3 text-center transition-all hover:scale-105"
+                            data-type="water">
+                            <div class="text-3xl mb-1">💧</div>
+                            <div class="text-xs font-bold text-gray-700">白开水</div>
+                        </button>
+                        <button onclick="selectType('tea')"
+                            class="type-btn bg-white/60 rounded-2xl p-3 text-center transition-all hover:scale-105"
+                            data-type="tea">
+                            <div class="text-3xl mb-1">🍵</div>
+                            <div class="text-xs font-bold text-gray-700">茶水</div>
+                        </button>
+                        <button onclick="selectType('coffee')"
+                            class="type-btn bg-white/60 rounded-2xl p-3 text-center transition-all hover:scale-105"
+                            data-type="coffee">
+                            <div class="text-3xl mb-1">☕</div>
+                            <div class="text-xs font-bold text-gray-700">咖啡</div>
+                        </button>
+                        <button onclick="selectType('milk')"
+                            class="type-btn bg-white/60 rounded-2xl p-3 text-center transition-all hover:scale-105"
+                            data-type="milk">
+                            <div class="text-3xl mb-1">🥛</div>
+                            <div class="text-xs font-bold text-gray-700">牛奶</div>
+                        </button>
+                        <button onclick="selectType('juice')"
+                            class="type-btn bg-white/60 rounded-2xl p-3 text-center transition-all hover:scale-105"
+                            data-type="juice">
+                            <div class="text-3xl mb-1">🧃</div>
+                            <div class="text-xs font-bold text-gray-700">果汁</div>
+                        </button>
+                        <button onclick="selectType('soda')"
+                            class="type-btn bg-white/60 rounded-2xl p-3 text-center transition-all hover:scale-105"
+                            data-type="soda">
+                            <div class="text-3xl mb-1">🥤</div>
+                            <div class="text-xs font-bold text-gray-700">饮料</div>
+                        </button>
+                        <button onclick="selectType('soup')"
+                            class="type-btn bg-white/60 rounded-2xl p-3 text-center transition-all hover:scale-105"
+                            data-type="soup">
+                            <div class="text-3xl mb-1">🍲</div>
+                            <div class="text-xs font-bold text-gray-700">汤</div>
+                        </button>
+                        <button onclick="selectType('other')"
+                            class="type-btn bg-white/60 rounded-2xl p-3 text-center transition-all hover:scale-105"
+                            data-type="other">
+                            <div class="text-3xl mb-1">🫗</div>
+                            <div class="text-xs font-bold text-gray-700">其他</div>
+                        </button>
+                    </div>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-600 mb-2">水量 (毫升)</label>
+                    <div class="flex gap-2 mb-3">
+                        <button onclick="setAmount(150)"
+                            class="flex-1 bg-white/60 hover:bg-cyan-100 rounded-xl py-2 text-sm font-bold text-cyan-700 transition-all">小杯
+                            150ml</button>
+                        <button onclick="setAmount(250)"
+                            class="flex-1 bg-white/60 hover:bg-cyan-100 rounded-xl py-2 text-sm font-bold text-cyan-700 transition-all">中杯
+                            250ml</button>
+                        <button onclick="setAmount(500)"
+                            class="flex-1 bg-white/60 hover:bg-cyan-100 rounded-xl py-2 text-sm font-bold text-cyan-700 transition-all">大杯
+                            500ml</button>
+                    </div>
+                    <div class="flex items-center gap-3 bg-white/60 rounded-2xl px-4 py-3">
+                        <input type="number" id="amount-input" value="250" min="1" max="2000"
+                            class="flex-1 bg-transparent text-2xl font-bold text-cyan-700 outline-none text-center"
+                            onchange="updateAmount()">
+                        <span class="text-gray-500 font-bold">ml</span>
+                    </div>
+                </div>
+                <button onclick="addDrink()"
+                    class="w-full btn-bounce bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-500 hover:to-blue-600 text-white font-bold text-lg py-4 rounded-2xl shadow-lg shadow-cyan-200 transition-all">✅
+                    确认记录</button>
+            </div>
+            <div class="glass-card rounded-3xl p-6">
+                <h3 class="text-sm font-bold text-gray-600 mb-3">⚡ 快捷记录</h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="quickAdd(150, 'water')"
+                        class="btn-bounce bg-white/60 hover:bg-cyan-50 rounded-xl p-3 flex items-center gap-3 transition-all"><span
+                            class="text-2xl">💧</span>
+                        <div class="text-left">
+                            <div class="font-bold text-gray-700 text-sm">一小杯白开水</div>
+                            <div class="text-xs text-gray-400">150 ml</div>
+                        </div>
+                    </button>
+                    <button onclick="quickAdd(250, 'water')"
+                        class="btn-bounce bg-white/60 hover:bg-cyan-50 rounded-xl p-3 flex items-center gap-3 transition-all"><span
+                            class="text-2xl">💧</span>
+                        <div class="text-left">
+                            <div class="font-bold text-gray-700 text-sm">一杯白开水</div>
+                            <div class="text-xs text-gray-400">250 ml</div>
+                        </div>
+                    </button>
+                    <button onclick="quickAdd(250, 'coffee')"
+                        class="btn-bounce bg-white/60 hover:bg-amber-50 rounded-xl p-3 flex items-center gap-3 transition-all"><span
+                            class="text-2xl">☕</span>
+                        <div class="text-left">
+                            <div class="font-bold text-gray-700 text-sm">一杯咖啡</div>
+                            <div class="text-xs text-gray-400">250 ml</div>
+                        </div>
+                    </button>
+                    <button onclick="quickAdd(500, 'tea')"
+                        class="btn-bounce bg-white/60 hover:bg-green-50 rounded-xl p-3 flex items-center gap-3 transition-all"><span
+                            class="text-2xl">🍵</span>
+                        <div class="text-left">
+                            <div class="font-bold text-gray-700 text-sm">一壶茶</div>
+                            <div class="text-xs text-gray-400">500 ml</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div id="view-settings" class="hidden fade-in">
+            <div class="glass-card rounded-3xl p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-6">⚙️ 个人设置</h2>
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-600 mb-2">昵称</label>
+                    <input type="text" id="setting-name" value="我"
+                        class="w-full bg-white/60 rounded-2xl px-4 py-3 text-gray-800 font-bold outline-none focus:ring-2 focus:ring-cyan-400 transition-all">
+                </div>
+                <div class="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl p-5 mb-6 border border-cyan-100">
+                    <h3 class="font-bold text-cyan-700 mb-3 flex items-center gap-2">🧮 智能饮水目标计算器</h3>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="text-xs text-gray-500 font-bold">体重 (kg)</label>
+                            <input type="number" id="calc-weight" value="60" min="1" max="200"
+                                class="w-full bg-white rounded-xl px-3 py-2 mt-1 text-gray-800 font-bold outline-none focus:ring-2 focus:ring-cyan-400">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 font-bold">活动量</label>
+                            <select id="calc-activity"
+                                class="w-full bg-white rounded-xl px-3 py-2 mt-1 text-gray-800 font-bold outline-none focus:ring-2 focus:ring-cyan-400">
+                                <option value="0">🛋️ 久坐少动</option>
+                                <option value="1" selected>🚶 轻度活动</option>
+                                <option value="2">🏃 中度活动</option>
+                                <option value="3">💪 重度活动</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button onclick="calculateGoal()"
+                        class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 rounded-xl transition-all mb-3">🎯
+                        计算我的目标</button>
+                    <div class="bg-white/70 rounded-xl p-3 text-center">
+                        <div class="text-xs text-gray-500">建议每日饮水目标</div>
+                        <div id="calc-result" class="text-2xl font-black text-cyan-600">2100 ml</div>
+                        <div class="text-xs text-gray-400 mt-1">基于体重 × 35ml + 活动量调整</div>
+                    </div>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-bold text-gray-600 mb-2">每日饮水目标 (ml)</label>
+                    <div class="flex items-center gap-3 bg-white/60 rounded-2xl px-4 py-3">
+                        <input type="number" id="setting-goal" value="2000" min="500" max="5000"
+                            class="flex-1 bg-transparent text-2xl font-bold text-cyan-700 outline-none text-center">
+                        <span class="text-gray-500 font-bold">ml</span>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-5 mb-6 border border-amber-100">
+                    <h3 class="font-bold text-amber-700 mb-3 flex items-center gap-2">⏰ 工作时间提醒设置</h3>
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="text-xs text-gray-500 font-bold">开始时间</label>
+                            <input type="time" id="work-start" value="09:00"
+                                class="w-full bg-white rounded-xl px-3 py-2 mt-1 text-gray-800 font-bold outline-none focus:ring-2 focus:ring-amber-400">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500 font-bold">结束时间</label>
+                            <input type="time" id="work-end" value="18:00"
+                                class="w-full bg-white rounded-xl px-3 py-2 mt-1 text-gray-800 font-bold outline-none focus:ring-2 focus:ring-amber-400">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-xs text-gray-500 font-bold">提醒间隔</label>
+                        <select id="reminder-interval"
+                            class="w-full bg-white rounded-xl px-3 py-2 mt-1 text-gray-800 font-bold outline-none focus:ring-2 focus:ring-amber-400">
+                            <option value="30">每 30 分钟</option>
+                            <option value="60" selected>每 1 小时</option>
+                            <option value="90">每 1.5 小时</option>
+                            <option value="120">每 2 小时</option>
+                        </select>
+                    </div>
+                    <div class="bg-white/70 rounded-xl p-3">
+                        <div class="text-xs text-gray-500 mb-1">预计提醒次数</div>
+                        <div id="reminder-count" class="text-lg font-bold text-amber-600">9 次</div>
+                        <div class="text-xs text-gray-400">每次建议饮水 <span id="per-drink-amount">222</span>ml</div>
+                    </div>
+                </div>
+                <button onclick="saveSettings()"
+                    class="w-full btn-bounce bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white font-bold text-lg py-3 rounded-2xl shadow-lg shadow-green-200 transition-all">💾
+                    保存设置</button>
+            </div>
+            <div class="glass-card rounded-3xl p-6">
+                <h3 class="font-bold text-gray-700 mb-3">🎮 演示数据</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center gap-2 bg-white/40 rounded-xl px-3 py-2"><span
+                            class="w-8 h-8 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center text-white font-bold text-xs">小</span><span
+                            class="font-bold text-gray-700">小萌</span><span class="text-gray-400">· 目标 1800ml</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/40 rounded-xl px-3 py-2"><span
+                            class="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white font-bold text-xs">阿</span><span
+                            class="font-bold text-gray-700">阿杰</span><span class="text-gray-400">· 目标 2500ml</span>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white/40 rounded-xl px-3 py-2"><span
+                            class="w-8 h-8 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white font-bold text-xs">L</span><span
+                            class="font-bold text-gray-700">Lisa</span><span class="text-gray-400">· 目标 2200ml</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-2xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 font-bold text-sm flex items-center gap-2">
+        <span id="toast-icon">✅</span>
+        <span id="toast-msg">记录成功！</span>
+    </div>
+
+    <script>
+        const TYPE_CONFIG = { water: { emoji: '💧', label: '白开水', color: '#22d3ee', hydration: 1 }, tea: { emoji: '🍵', label: '茶水', color: '#10b981', hydration: .95 }, coffee: { emoji: '☕', label: '咖啡', color: '#b45309', hydration: .9 }, milk: { emoji: '🥛', label: '牛奶', color: '#f59e0b', hydration: .85 }, juice: { emoji: '🧃', label: '果汁', color: '#f97316', hydration: .8 }, soda: { emoji: '🥤', label: '饮料', color: '#ef4444', hydration: .6 }, soup: { emoji: '🍲', label: '汤', color: '#84cc16', hydration: .9 }, other: { emoji: '🫗', label: '其他', color: '#6b7280', hydration: .8 } };
+        const COLORS = [['from-pink-400', 'to-rose-500'], ['from-amber-400', 'to-orange-500'], ['from-violet-400', 'to-purple-500'], ['from-emerald-400', 'to-teal-500'], ['from-indigo-400', 'to-blue-500'], ['from-fuchsia-400', 'to-pink-500']];
+        const ACHIEVEMENTS = [{ id: 'first_drink', emoji: '🌱', title: '初次尝试', desc: '记录第一杯水', check: u => u.drinks.length >= 1 }, { id: 'half_way', emoji: '🌊', title: '半程达成', desc: '完成50%目标', check: u => getProgress(u) >= 50 }, { id: 'goal_reached', emoji: '🏆', title: '目标达成', desc: '完成100%目标', check: u => getProgress(u) >= 100 }, { id: 'hydration_master', emoji: '💎', title: '补水大师', desc: '超额完成120%', check: u => getProgress(u) >= 120 }, { id: 'tea_lover', emoji: '🍵', title: '茶道中人', desc: '喝了5杯茶', check: u => countType(u, 'tea') >= 5 }, { id: 'coffee_addict', emoji: '☕', title: '咖啡续命', desc: '喝了5杯咖啡', check: u => countType(u, 'coffee') >= 5 }, { id: 'water_purist', emoji: '💧', title: '纯水主义者', desc: '80%都是白开水', check: u => getTypeRatio(u, 'water') >= .8 }, { id: 'heavy_drinker', emoji: '🐳', title: '海量选手', desc: '单日超过3000ml', check: u => getTotalMl(u) >= 3000 }];
+
+        function generateDemoDrinks(goal, ratio) { const types = ['water', 'tea', 'coffee', 'milk'], amounts = [150, 200, 250, 300, 500], drinks = []; let total = 0; const target = goal * ratio; while (total << target) { const amt = amounts[Math.floor(Math.random() * amounts.length)], typ = types[Math.floor(Math.random() * types.length)]; if (total + amt > target + 300) break; drinks.push({ id: Date.now() + Math.random(), type: typ, amount: amt, time: new Date(Date.now() - Math.random() * 8 * 36e5).toISOString(), hydration: Math.round(amt * TYPE_CONFIG[typ].hydration) }); total += amt } return drinks }
+        function generateHistory(days) { const history = [], today = new Date; for (let i = days - 1; i >= 0; i--) { const date = new Date(today); date.setDate(date.getDate() - i); const isToday = 0 === i, base = isToday ? 0 : Math.floor(1200 + 800 * Math.random()); history.push({ date: date.toISOString().split('T')[0], total: base, hydration: Math.floor(.9 * base), cups: Math.floor(base / 250), types: { water: Math.floor(.5 * base / 250), tea: Math.floor(.2 * base / 250), coffee: Math.floor(.15 * base / 250), milk: Math.floor(.1 * base / 250), other: Math.floor(.05 * base / 250) } }) } return history }
+
+        let users = [{ id: 'me', name: '我', goal: 2e3, drinks: [], colorIdx: 3, streak: 3, history: generateHistory(30) }, { id: 'u1', name: '小萌', goal: 1800, drinks: generateDemoDrinks(1800, .7), colorIdx: 0, streak: 5, history: generateHistory(30) }, { id: 'u2', name: '阿杰', goal: 2500, drinks: generateDemoDrinks(2500, .9), colorIdx: 1, streak: 2, history: generateHistory(30) }, { id: 'u3', name: 'Lisa', goal: 2200, drinks: generateDemoDrinks(2200, .5), colorIdx: 2, streak: 7, history: generateHistory(30) }];
+        let currentUserId = 'me', selectedType = 'water', selectedAmount = 250, weeklyChart = null, monthlyChart = null, typeChart = null;
+
+        function getUser(id) { return users.find(u => u.id === id) }
+        function getCurrentUser() { return getUser(currentUserId) }
+        function getTotalMl(user) { return user.drinks.reduce((sum, d) => sum + d.amount, 0) }
+        function getHydrationMl(user) { return user.drinks.reduce((sum, d) => sum + (d.hydration || d.amount), 0) }
+        function getProgress(user) { return Math.min(100, Math.round(getHydrationMl(user) / user.goal * 100)) }
+        function countType(user, type) { return user.drinks.filter(d => d.type === type).length }
+        function getTypeRatio(user, type) { const total = user.drinks.length; return 0 === total ? 0 : countType(user, type) / total }
+
+        function getWorkSchedule() { const user = getCurrentUser(), start = document.getElementById('work-start')?.value || '09:00', end = document.getElementById('work-end')?.value || '18:00', interval = parseInt(document.getElementById('reminder-interval')?.value || '60'), [sh, sm] = start.split(':').map(Number), [eh, em] = end.split(':').map(Number), startMin = 60 * sh + sm, endMin = 60 * eh + em, totalMin = endMin - startMin, slots = Math.floor(totalMin / interval), perDrink = Math.round(user.goal / slots), schedule = []; for (let i = 0; i << slots; i++) { const slotMin = startMin + i * interval, h = Math.floor(slotMin / 60), m = slotMin % 60, timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`, hasDrink = user.drinks.some(d => { const dt = new Date(d.time); return Math.abs(60 * dt.getHours() + dt.getMinutes() - slotMin) <= 15 }); schedule.push({ time: timeStr, amount: perDrink, done: hasDrink }) } return { schedule, perDrink, slots } }
+
+        function renderDashboard() { const me = getCurrentUser(), total = getTotalMl(me), hydration = getHydrationMl(me), progress = getProgress(me), cups = me.drinks.length, circumference = 339.292, offset = circumference - progress / 100 * circumference; document.getElementById('my-progress-ring').style.strokeDashoffset = offset; document.getElementById('my-percent').textContent = progress + '%'; document.getElementById('my-amount').textContent = `${hydration} / ${me.goal} ml`; document.getElementById('my-name-display').textContent = me.name; document.getElementById('my-cups').textContent = cups; document.getElementById('my-total-ml').textContent = total; const sorted = [...users].sort((a, b) => getProgress(b) - getProgress(a)), rank = sorted.findIndex(u => u.id === me.id) + 1; document.getElementById('my-rank').textContent = rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : `第${rank}名`; const streakBanner = document.getElementById('streak-banner'); me.streak > 1 ? (streakBanner.classList.remove('hidden'), document.getElementById('streak-days').textContent = me.streak) : streakBanner.classList.add('hidden'); updateReminderBanner(); const timelineEl = document.getElementById('my-timeline'); 0 === me.drinks.length ? timelineEl.innerHTML = '<p class="text-sm text-gray-400 py-2">还没有喝水记录哦～</p>' : timelineEl.innerHTML = me.drinks.slice().sort((a, b) => new Date(a.time) - new Date(b.time)).map(d => { const cfg = TYPE_CONFIG[d.type], time = new Date(d.time), timeStr = time.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); return `<div class="relative"><div class="timeline-dot" style="--dot-color:${cfg.color}"></div><div class="bg-white/50 rounded-xl px-3 py-2 ml-2"><div class="flex items-center justify-between"><span class="font-bold text-gray-700 text-sm">${cfg.emoji} ${cfg.label} ${d.amount}ml</span><span class="text-xs text-gray-400">${timeStr}</span></div><div class="text-xs text-gray-400 mt-0.5">有效补水 ${d.hydration || d.amount}ml</div></div></div>` }).join(''); renderWorkSchedule(); const friendsEl = document.getElementById('friends-list'), others = users.filter(u => u.id !== currentUserId); friendsEl.innerHTML = others.map(u => { const p = getProgress(u), h = getHydrationMl(u), c = COLORS[u.colorIdx]; return `<div class="flex items-center gap-4 bg-white/50 rounded-2xl p-4 transition-all hover:bg-white/70"><div class="relative w-14 h-14 flex-shrink-0"><div class="absolute inset-0 rounded-full bg-gradient-to-br ${c[0]} ${c[1]} flex items-center justify-center text-white font-bold shadow-md">${u.name[0]}</div><svg class="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 60 60"><circle cx="30" cy="30" r="26" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="3"/><circle cx="30" cy="30" r="26" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-dasharray="163.36" stroke-dashoffset="${163.36 - p / 100 * 163.36}"/></svg></div><div class="flex-1 min-w-0"><div class="flex items-center justify-between mb-1"><span class="font-bold text-gray-800">${u.name}</span><span class="text-sm font-bold ${p >= 100 ? 'text-green-500' : 'text-cyan-600'}">${p}%</span></div><div class="w-full bg-gray-200 rounded-full h-2.5 mb-1"><div class="bg-gradient-to-r from-cyan-400 to-blue-500 h-2.5 rounded-full transition-all" style="width:${p}%"></div></div><div class="text-xs text-gray-500">${h} / ${u.goal} ml · ${u.drinks.length} 杯 ${u.streak > 1 ? '· 🔥' + u.streak + '天' : ''}</div></div></div>` }).join('') }
+
+        function renderWorkSchedule() { const { schedule, perDrink } = getWorkSchedule(), el = document.getElementById('work-schedule'); el.innerHTML = schedule.map((slot, i) => `<div class="flex items-center gap-3 bg-white/50 rounded-xl px-3 py-2 ${slot.done ? 'opacity-60' : ''}"><div class="w-14 text-sm font-bold text-gray-500">${slot.time}</div><div class="flex-1"><div class="w-full bg-gray-200 rounded-full h-2"><div class="h-2 rounded-full transition-all ${slot.done ? 'bg-green-400' : 'bg-cyan-300'}" style="width:${slot.done ? 100 : Math.max(10, (i + 1) / schedule.length * 100)}%"></div></div></div><div class="text-xs font-bold ${slot.done ? 'text-green-500' : 'text-cyan-600'}">${slot.done ? '✅ 已完成' : `建议 ${slot.amount}ml`}</div></div>`).join('') }
+
+        function renderHistory() { const me = getCurrentUser(), history = me.history, weekData = history.slice(-7), weekLabels = weekData.map(h => { const d = new Date(h.date); return '日一二三四五六'[d.getDay()] }), weekTotals = weekData.map(h => h.total), weekGoals = weekData.map(() => me.goal); weeklyChart && weeklyChart.destroy(); weeklyChart = new Chart(document.getElementById('weekly-chart'), { type: 'bar', data: { labels: weekLabels, datasets: [{ label: '实际饮水', data: weekTotals, backgroundColor: 'rgba(34,211,238,0.7)', borderColor: 'rgba(34,211,238,1)', borderWidth: 2, borderRadius: 8 }, { label: '目标', data: weekGoals, type: 'line', borderColor: 'rgba(245,158,11,0.6)', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: !1 }] }, options: { responsive: !0, maintainAspectRatio: !1, plugins: { legend: { display: !0, position: 'top' } }, scales: { y: { beginAtZero: !0, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: !1 } } } } }); const monthLabels = history.map(h => h.date.slice(5)), monthTotals = history.map(h => h.total); monthlyChart && monthlyChart.destroy(); monthlyChart = new Chart(document.getElementById('monthly-chart'), { type: 'line', data: { labels: monthLabels, datasets: [{ label: '每日饮水量', data: monthTotals, borderColor: 'rgba(14,165,233,0.8)', backgroundColor: 'rgba(14,165,233,0.1)', borderWidth: 2, fill: !0, tension: .4, pointRadius: 3, pointBackgroundColor: 'rgba(14,165,233,1)' }] }, options: { responsive: !0, maintainAspectRatio: !1, plugins: { legend: { display: !1 } }, scales: { y: { beginAtZero: !0, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { display: !1 } } } }); const typeCounts = {}; history.forEach(h => { Object.entries(h.types).forEach(([type, count]) => { typeCounts[type] = (typeCounts[type] || 0) + count }) }); me.drinks.forEach(d => { typeCounts[d.type] = (typeCounts[d.type] || 0) + 1 }); const typeLabels = Object.keys(typeCounts).map(t => TYPE_CONFIG[t]?.label || t), typeData = Object.values(typeCounts), typeColors = Object.keys(typeCounts).map(t => TYPE_CONFIG[t]?.color || '#999'); typeChart && typeChart.destroy(); typeChart = new Chart(document.getElementById('type-chart'), { type: 'doughnut', data: { labels: typeLabels, datasets: [{ data: typeData, backgroundColor: typeColors, borderWidth: 0 }] }, options: { responsive: !0, maintainAspectRatio: !1, plugins: { legend: { display: !1 } }, cutout: '60%' } }); const totalCups = Object.values(typeCounts).reduce((a, b) => a + b, 0); document.getElementById('type-stats').innerHTML = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).map(([type, count]) => { const cfg = TYPE_CONFIG[type], pct = Math.round(count / totalCups * 100); return `<div class="flex items-center gap-2"><span class="text-lg">${cfg.emoji}</span><div class="flex-1"><div class="flex justify-between text-sm"><span class="font-bold text-gray-700">${cfg.label}</span><span class="text-gray-500">${count} 杯 (${pct}%)</span></div><div class="w-full bg-gray-200 rounded-full h-1.5 mt-1"><div class="h-1.5 rounded-full" style="width:${pct}%;background:${cfg.color}"></div></div></div></div>` }).join(''); document.getElementById('achievements-list').innerHTML = ACHIEVEMENTS.map(ach => { const unlocked = ach.check(me); return `<div class="${unlocked ? 'bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200' : 'bg-gray-50 border-gray-200'} border rounded-2xl p-3 text-center transition-all ${unlocked ? 'achievement-unlock' : 'opacity-50'}"><div class="text-3xl mb-1">${ach.emoji}</div><div class="font-bold text-sm ${unlocked ? 'text-amber-700' : 'text-gray-400'}">${ach.title}</div><div class="text-xs ${unlocked ? 'text-amber-600' : 'text-gray-400'}">${ach.desc}</div></div>` }).join('') }
+
+        function renderUserSelector() { const el = document.getElementById('user-selector'); el.innerHTML = users.map(u => { const c = COLORS[u.colorIdx], isActive = u.id === currentUserId; return `<button onclick="switchUser('${u.id}')" class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${isActive ? 'bg-cyan-500 text-white shadow-lg' : 'bg-white/60 text-gray-600 hover:bg-cyan-50'}"><span class="w-6 h-6 rounded-full bg-gradient-to-br ${c[0]} ${c[1]} flex items-center justify-center text-white text-xs">${u.name[0]}</span>${u.name}</button>` }).join('') }
+
+        function updateReminderBanner() { const now = new Date, currentMin = 60 * now.getHours() + now.getMinutes(), { schedule } = getWorkSchedule(); let nextSlot = null; for (let i = 0; i << schedule.length; i++) { const [h, m] = schedule[i].time.split(':').map(Number), slotMin = 60 * h + m; if (slotMin > currentMin && !schedule[i].done) { nextSlot = schedule[i]; break } } const banner = document.getElementById('reminder-banner'); nextSlot ? (document.getElementById('reminder-countdown').textContent = 60 * parseInt(nextSlot.time.split(':')[0]) + parseInt(nextSlot.time.split(':')[1]) - currentMin, banner.classList.remove('hidden')) : banner.classList.add('hidden') }
+
+        function switchTab(tab) { ['dashboard', 'history', 'add', 'settings'].forEach(t => { document.getElementById('view-' + t).classList.add('hidden'); const btn = document.getElementById('tab-' + t); btn.classList.remove('bg-cyan-500', 'text-white', 'shadow-lg'); btn.classList.add('text-cyan-600') }); document.getElementById('view-' + tab).classList.remove('hidden'); const activeBtn = document.getElementById('tab-' + tab); activeBtn.classList.add('bg-cyan-500', 'text-white', 'shadow-lg'); activeBtn.classList.remove('text-cyan-600'); 'dashboard' === tab ? renderDashboard() : 'history' === tab ? renderHistory() : 'add' === tab ? renderUserSelector() : 'settings' === tab && updateReminderCalc() }
+
+        function switchUser(id) { currentUserId = id; renderUserSelector() }
+        function selectType(type) { selectedType = type; document.querySelectorAll('.type-btn').forEach(btn => { btn.dataset.type === type ? btn.classList.add('active', 'ring-2', 'ring-cyan-400', 'bg-cyan-50') : btn.classList.remove('active', 'ring-2', 'ring-cyan-400', 'bg-cyan-50') }) }
+        function setAmount(amt) { selectedAmount = amt; document.getElementById('amount-input').value = amt }
+        function updateAmount() { selectedAmount = parseInt(document.getElementById('amount-input').value) || 250 }
+
+        function addDrink() { const user = getCurrentUser(), cfg = TYPE_CONFIG[selectedType], drink = { id: Date.now(), type: selectedType, amount: selectedAmount, time: new Date().toISOString(), hydration: Math.round(selectedAmount * cfg.hydration) }; user.drinks.push(drink); const today = new Date().toISOString().split('T')[0], todayRecord = user.history.find(h => h.date === today); todayRecord && (todayRecord.total += selectedAmount, todayRecord.hydration += drink.hydration, todayRecord.cups += 1, todayRecord.types[selectedType] = (todayRecord.types[selectedType] || 0) + 1); checkAchievements(user); showToast(`${cfg.emoji} 记录了 ${selectedAmount}ml ${cfg.label}！`); switchTab('dashboard') }
+
+        function quickAdd(amount, type) { selectedType = type; selectedAmount = amount; addDrink() }
+        function deleteDrink(userId, drinkId) { const user = getUser(userId); user.drinks = user.drinks.filter(d => d.id !== drinkId); renderDashboard(); showToast('🗑️ 已删除记录') }
+
+        let unlockedAchievements = new Set;
+        function checkAchievements(user) { ACHIEVEMENTS.forEach(ach => { !unlockedAchievements.has(ach.id) && ach.check(user) && (unlockedAchievements.add(ach.id), showAchievement(ach), triggerConfetti()) }) }
+        function showAchievement(ach) { const toast = document.getElementById('achievement-toast'); document.getElementById('achievement-emoji').textContent = ach.emoji; document.getElementById('achievement-text').textContent = `${ach.title} — ${ach.desc}`; toast.classList.remove('hidden'); setTimeout(() => toast.classList.add('hidden'), 4e3) }
+        function triggerConfetti() { const colors = ['#22d3ee', '#f59e0b', '#ef4444', '#10b981', '#a855f7']; for (let i = 0; i << 30; i++) { const confetti = document.createElement('div'); confetti.className = 'confetti'; confetti.style.left = 100 * Math.random() + 'vw'; confetti.style.width = 5 + 10 * Math.random() + 'px'; confetti.style.height = 5 + 10 * Math.random() + 'px'; confetti.style.background = colors[Math.floor(Math.random() * colors.length)]; confetti.style.borderRadius = Math.random() > .5 ? '50%' : '0'; confetti.style.animationDuration = 2 + 2 * Math.random() + 's'; confetti.style.animationDelay = .5 * Math.random() + 's'; document.body.appendChild(confetti); setTimeout(() => confetti.remove(), 4e3) } }
+
+        function calculateGoal() { const weight = parseFloat(document.getElementById('calc-weight').value) || 60, activity = parseInt(document.getElementById('calc-activity').value) || 1, total = Math.round(35 * weight + 200 * activity); document.getElementById('calc-result').textContent = total + ' ml'; document.getElementById('setting-goal').value = total; updateReminderCalc() }
+        function updateReminderCalc() { const goal = parseInt(document.getElementById('setting-goal')?.value || document.getElementById('calc-result')?.textContent || '2e3'), start = document.getElementById('work-start')?.value || '09:00', end = document.getElementById('work-end')?.value || '18:00', interval = parseInt(document.getElementById('reminder-interval')?.value || '60'), [sh, sm] = start.split(':').map(Number), [eh, em] = end.split(':').map(Number), totalMin = 60 * eh + em - (60 * sh + sm), slots = Math.max(1, Math.floor(totalMin / interval)), perDrink = Math.round(goal / slots); document.getElementById('reminder-count').textContent = slots + ' 次'; document.getElementById('per-drink-amount').textContent = perDrink }
+        function saveSettings() { const me = getCurrentUser(); me.name = document.getElementById('setting-name').value || '我'; me.goal = parseInt(document.getElementById('setting-goal').value) || 2e3; showToast('💾 设置已保存！'); switchTab('dashboard') }
+
+        function showToast(msg) { const toast = document.getElementById('toast'); document.getElementById('toast-msg').textContent = msg; toast.classList.remove('translate-y-20', 'opacity-0'); toast.classList.add('translate-y-0', 'opacity-100'); setTimeout(() => { toast.classList.add('translate-y-20', 'opacity-0'); toast.classList.remove('translate-y-0', 'opacity-100') }, 2500) }
+
+        document.addEventListener('DOMContentLoaded', () => { ['work-start', 'work-end', 'reminder-interval', 'setting-goal'].forEach(id => { const el = document.getElementById(id); el && el.addEventListener('change', updateReminderCalc) }); renderDashboard(); renderUserSelector(); updateReminderCalc(); setInterval(updateReminderBanner, 6e4) });
+    </script>
+</body>
+
+</html>
